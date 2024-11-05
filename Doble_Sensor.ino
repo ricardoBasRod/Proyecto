@@ -1,54 +1,64 @@
-// Pines de los sensores PIR
-const int PIR1_PIN = 5;  // Sensor PIR 1
-const int PIR2_PIN = 4;  // Sensor PIR 2
+int LED = 4;                         // Pin para el LED
+int ENTRY_SENSOR_PIN = 2;             // D2 (pin 4) para el sensor de entrada
+int EXIT_SENSOR_PIN = 3;              // D3 (pin 0) para el sensor de salida
 
-// Variables para guardar el estado de los sensores
-bool estadoPIR1 = LOW;
-bool estadoPIR2 = LOW;
+bool ledState = LOW;                  // Estado actual del LED
+bool lastEntrySensorValue = LOW;      // Último valor leído del sensor de entrada
+bool lastExitSensorValue = LOW;       // Último valor leído del sensor de salida
 
-void setup() {
-  // Configurar los pines de los sensores PIR como entrada
-  pinMode(PIR1_PIN, INPUT);
-  pinMode(PIR2_PIN, INPUT);
-
-  // Iniciar comunicación serial para depuración
-  Serial.begin(115200);
-  Serial.println("Sistema de detección de entrada/salida listo.");
-}
-
+  int mode=0;
+  int numero=0; 
+  String id_="id";
+  void setup() {
+  pinMode(ENTRY_SENSOR_PIN, INPUT);   // Configurar el sensor de entrada (D2)
+  pinMode(EXIT_SENSOR_PIN, INPUT);    // Configurar el sensor de salida (D3)
+  pinMode(LED, OUTPUT);               // Configurar el pin del LED
+  Serial.begin(9600);
+  Serial.println(F("DHTxx Unified Sensor Example"));
+  }
 void loop() {
-  // Leer el estado de los sensores PIR
-  int lecturaPIR1 = digitalRead(PIR1_PIN);
-  int lecturaPIR2 = digitalRead(PIR2_PIN);
-
-  // Detectar si PIR1 se activa primero y luego PIR2 (indica entrada)
-  if (lecturaPIR1 == HIGH && estadoPIR1 == LOW) {
-    // PIR 1 detecta primero
-    Serial.println("PIR 1 activado, esperando PIR 2...");
-    estadoPIR1 = HIGH;  // Guardar el estado de PIR 1
-  
-
-    if (lecturaPIR2 == HIGH && estadoPIR1 == HIGH) {
-      // PIR 2 se activa después de PIR 1, indica entrada
-      Serial.println("Persona ha ENTRADO.");
-      estadoPIR1 = LOW;  // Reiniciar los estados
-      estadoPIR2 = LOW;
-    }
-  }
-  // Detectar si PIR2 se activa primero y luego PIR1 (indica salida)
-  if (lecturaPIR2 == HIGH && estadoPIR2 == LOW) {
-    // PIR 2 detecta primero
-    Serial.println("PIR 2 activado, esperando PIR 1...");
-    estadoPIR2 = HIGH;  // Guardar el estado de PIR 2
-
-
-    if (lecturaPIR1 == HIGH && estadoPIR2 == HIGH) {
-      // PIR 1 se activa después de PIR 2, indica salida
-      Serial.println("Persona ha SALIDO.");
-      estadoPIR1 = LOW;  // Reiniciar los estados
-      estadoPIR2 = LOW;
-    }
+  id_="";
+  int entrySensorValue = digitalRead(ENTRY_SENSOR_PIN);  // Leer el valor del sensor de entrada
+  int exitSensorValue = digitalRead(EXIT_SENSOR_PIN);    // Leer el valor del sensor de salida
+  Serial.print(entrySensorValue);
+  Serial.print(exitSensorValue);
+  // Si el sensor de entrada detecta movimiento (de LOW a HIGH)
+  if (entrySensorValue == HIGH && lastEntrySensorValue == LOW) {
+    ledState = HIGH;  // Encender el LED
+    id_="id_1";
+    mode=1;
+    numero=numero+1;
+    digitalWrite(LED, ledState);
+    Serial.print("{"data" : [{\"arduinoID_id_sensor\":");
+    Serial.print(id_);
+    Serial.print(",\"modo_operacion\":");
+    Serial.print(mode);
+    Serial.print(",\"num_personas\":\"");
+    Serial.print(numero);
+    Serial.println("\"}]}");
+    delay(1000);  // Esperar 1 segundo antes de procesar nuevamente
   }
 
-  delay(3000);
+  // Si el sensor de salida detecta movimiento (de LOW a HIGH)
+  if (exitSensorValue == HIGH && lastExitSensorValue == LOW) {
+    ledState = LOW;  // Apagar el LED
+    id_="id_2";
+    mode=0;
+    numero=numero-1;
+    digitalWrite(LED, ledState);
+    Serial.print("{"data" : [{\"arduinoID_id_sensor\":");
+    Serial.print(id_);
+    Serial.print(",\"modo_operacion\":");
+    Serial.print(mode);
+    Serial.print(",\"num_personas\":\"");
+    Serial.print(numero);
+    Serial.println("\"}]}");
+    delay(1000);  // Esperar 1 segundo antes de procesar nuevamente
+  }
+
+  // Actualizar los últimos valores leídos de los sensores
+  lastEntrySensorValue = entrySensorValue;
+  lastExitSensorValue = exitSensorValue;
+
+  delay(1000);  // Esperar 1 segundo entre lecturas
 }
